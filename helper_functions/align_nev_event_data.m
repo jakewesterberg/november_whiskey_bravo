@@ -1,7 +1,12 @@
-function [realigned_nev_event_codes, realigned_nev_event_times, realigned_indices, block_lengths] = ...
-    align_nev_event_data(compiled_nev_event_codes, compiled_nev_event_times, events_of_interest)
+function [realigned_nev_event_codes, realigned_nev_event_times, ...
+    realigned_nev_event_infos, realigned_indices, block_lengths] = ...
+    align_nev_event_data(compiled_nev_event_codes, compiled_nev_event_times, ...
+    compiled_nev_event_infos, events_of_interest)
 
 if nargin < 3
+    compiled_nev_event_infos = {};
+end
+if nargin < 4
     events_of_interest = [1, 2];
 end
 
@@ -77,10 +82,20 @@ for ii = 1 : size(compiled_nev_event_codes, 1)
 
 end
 
+if ~isempty(compiled_nev_event_infos)
+    realigned_nev_event_infos = compiled_nev_event_infos{1};
+else
+    realigned_nev_event_infos = [];
+end
+
 for ii = 1 : size(compiled_nev_event_codes, 1)
     block_lengths(ii) = numel(realigned_indices{ii,1});
     if ii > 1
         realigned_nev_event_times{ii} = realigned_nev_event_times{ii} + sum(block_lengths(1:ii-1));
+        if ~isempty(realigned_nev_event_infos)
+            realigned_nev_event_infos = [realigned_nev_event_infos; ...
+                compiled_nev_event_infos{ii}];
+        end
     end
 end
 
@@ -92,6 +107,15 @@ for ii = 1:  size(realigned_nev_event_times, 2)
 end
 
 realigned_nev_event_codes = temp_event_codes;
-realigned_nev_event_times = temp_event_times;
+realigned_nev_event_times = temp_event_times ./ 30000;
+
+if ~isempty(realigned_nev_event_infos)
+    if size(realigned_nev_event_infos,1) ~= numel(realigned_nev_event_codes)
+        warning('INFOS SIZE DOES NOT MATCH NUMBER OF DETECTED TRIALS. CHECK EVENTS OF INTEREST')
+        realigned_nev_event_infos = [realigned_nev_event_infos; ...
+            zeros(numel(realigned_nev_event_codes) - size(realigned_nev_event_infos,1), ...
+            size(realigned_nev_event_infos, 2))];
+    end
+end
 
 end

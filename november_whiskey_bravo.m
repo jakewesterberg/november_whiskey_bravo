@@ -7,7 +7,7 @@
 % Certain aspects of the data processing require toolboxes found in other
 % github repos. Original or forked versions of all required can be found on
 % Jake's github page (westerberg-science). Kilosort (2 is used here) is
-% required for spike sorting. Also, this of course requires the matnwb 
+% required for spike sorting. Also, this of course requires the matnwb
 % toolbox.
 
 % Notes
@@ -22,7 +22,7 @@ this_ident                      = []; % used to specify specific session(s) with
 
 %% pathing...can change to varargin or change function defaults for own machine
 pp = pipeline_paths();
-                                        
+
 % add toolboxes
 addpath(genpath(pp.TBOXES));
 
@@ -61,37 +61,37 @@ for ii = to_proc
         continue;
     end
 
-%     if strcmp(recording_info.Raw_Data_Format{ii}, 'AI-NWB')
-% 
-%         raw_data_dir = [pp.RAW_DATA 'dandi' filesep '000253' ...
-%             filesep 'sub_' recording_info.Subject{ii} ...
-%             filesep 'sub_' recording_info.Subject{ii} ...
-%             'sess_' num2str(recording_info.Session(ii)) ...
-%             filesep 'sub_' recording_info.Subject{ii} ...
-%             '+sess_' num2str(recording_info.Session(ii)) ...
-%             '_ecephys.nwb'];
-% 
-%         fpath = fileparts(raw_data_dir);
-% 
-%         if ~exist(raw_data_dir, 'file')
-%             warning('raw allen data not detected.')
-%             continue
-%         end
-% 
-%         copyfile(raw_data_dir, [pp.NWB_DATA recording_info.Identifier{ii} '.nwb'])
-%         nwb = nwbRead([pp.NWB_DATA recording_info.Identifier{ii} '.nwb']);
-% 
-%         proc_AIC(pp, nwb, recording_info, ii, fpath);
-% 
-%         n_procd = n_procd + 1;
-%         continue
-% 
-%     end
+    %     if strcmp(recording_info.Raw_Data_Format{ii}, 'AI-NWB')
+    %
+    %         raw_data_dir = [pp.RAW_DATA 'dandi' filesep '000253' ...
+    %             filesep 'sub_' recording_info.Subject{ii} ...
+    %             filesep 'sub_' recording_info.Subject{ii} ...
+    %             'sess_' num2str(recording_info.Session(ii)) ...
+    %             filesep 'sub_' recording_info.Subject{ii} ...
+    %             '+sess_' num2str(recording_info.Session(ii)) ...
+    %             '_ecephys.nwb'];
+    %
+    %         fpath = fileparts(raw_data_dir);
+    %
+    %         if ~exist(raw_data_dir, 'file')
+    %             warning('raw allen data not detected.')
+    %             continue
+    %         end
+    %
+    %         copyfile(raw_data_dir, [pp.NWB_DATA recording_info.Identifier{ii} '.nwb'])
+    %         nwb = nwbRead([pp.NWB_DATA recording_info.Identifier{ii} '.nwb']);
+    %
+    %         proc_AIC(pp, nwb, recording_info, ii, fpath);
+    %
+    %         n_procd = n_procd + 1;
+    %         continue
+    %
+    %     end
 
     % Initialize nwb file
     nwb                                 = NwbFile;
     nwb.identifier                      = recording_info.Identifier{ii};
-    nwb.session_start_time              = datetime(datestr(datenum(num2str(recording_info.Session(ii)), 'yymmdd')));
+    nwb.session_start_time              = datetime(datestr(datenum(num2str(recording_info.Session(ii)), 'yyyymmdd')));
     nwb.general_experimenter            = recording_info.Investigator{ii};
     nwb.general_institution             = recording_info.Institution{ii};
     nwb.general_lab                     = recording_info.Lab{ii};
@@ -100,58 +100,58 @@ for ii = to_proc
 
     num_recording_devices = numel(unique(eval(['[' recording_info.Probe_System{ii} ']' ])));
 
-%     for rd = 1 : num_recording_devices
-% 
-%         % RAW DATA
-%         fd1 = findDir(pp.RAW_DATA, nwb.identifier);
-%         fd2 = findDir(pp.RAW_DATA, ['dev-' num2str(rd-1)]);
-%         raw_data_present = sum(ismember(fd2, fd1));
-%         clear fd*
-% 
-%         if ~raw_data_present
-% 
-%             if (exist([pp.SCRATCH '\proc_grab_data.bat'],'file'))
-%                 delete([pp.SCRATCH '\proc_grab_data.bat']);
-%             end
-% 
-%             fd1 = findDir(pp.DATA_SOURCE, nwb.identifier);
-%             fd2 = findDir(pp.DATA_SOURCE, ['dev-' num2str(rd-1)]);
-%             raw_data_temp = fd2(ismember(fd2, fd1));
-%             raw_data_temp = raw_data_temp{1};
-% 
-%             [~, dir_name_temp] = fileparts(raw_data_temp);
-% 
-%             % Grab data if missing
-%             workers = feature('numcores');
-%             fid = fopen([pp.SCRATCH '\proc_grab_data.bat'], 'w');
-% 
-%             fprintf(fid, '%s\n', ...
-%                 ['robocopy ' ...
-%                 raw_data_temp ...
-%                 ' ' ...
-%                 [pp.RAW_DATA dir_name_temp] ...
-%                 ' /e /j /mt:' ...
-%                 num2str(workers)]);
-% 
-%             fclose('all');
-%             system([pp.SCRATCH '\proc_grab_data.bat']);
-%             delete([pp.SCRATCH '\proc_grab_data.bat']);
-% 
-%         end
-%     end
+    %     for rd = 1 : num_recording_devices
+    %
+    %         % RAW DATA
+    %         fd1 = findDir(pp.RAW_DATA, nwb.identifier);
+    %         fd2 = findDir(pp.RAW_DATA, ['dev-' num2str(rd-1)]);
+    %         raw_data_present = sum(ismember(fd2, fd1));
+    %         clear fd*
+    %
+    %         if ~raw_data_present
+    %
+    %             if (exist([pp.SCRATCH '\proc_grab_data.bat'],'file'))
+    %                 delete([pp.SCRATCH '\proc_grab_data.bat']);
+    %             end
+    %
+    %             fd1 = findDir(pp.DATA_SOURCE, nwb.identifier);
+    %             fd2 = findDir(pp.DATA_SOURCE, ['dev-' num2str(rd-1)]);
+    %             raw_data_temp = fd2(ismember(fd2, fd1));
+    %             raw_data_temp = raw_data_temp{1};
+    %
+    %             [~, dir_name_temp] = fileparts(raw_data_temp);
+    %
+    %             % Grab data if missing
+    %             workers = feature('numcores');
+    %             fid = fopen([pp.SCRATCH '\proc_grab_data.bat'], 'w');
+    %
+    %             fprintf(fid, '%s\n', ...
+    %                 ['robocopy ' ...
+    %                 raw_data_temp ...
+    %                 ' ' ...
+    %                 [pp.RAW_DATA dir_name_temp] ...
+    %                 ' /e /j /mt:' ...
+    %                 num2str(workers)]);
+    %
+    %             fclose('all');
+    %             system([pp.SCRATCH '\proc_grab_data.bat']);
+    %             delete([pp.SCRATCH '\proc_grab_data.bat']);
+    %
+    %         end
+    %     end
 
-    [nwb, recdev, probe] = proc_PRO(pp, nwb, recording_info, ii, num_recording_devices);
-    
-    probe_ctr = 0;
     for rd = 1 : num_recording_devices
-
-        if isfield(recdev{rd}, 'recording_blocks')
-            if numel(recdev{rd}.recording_blocks) > 1
-                if ~exist([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1)], 'dir')
-                    proc_CAT(pp, nwb, rd, ii, recording_info);
-                end
+        if strcmp(recording_info.Raw_Data_Format{ii}, 'Blackrock NSx')
+            if ~exist([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1)], 'dir')
+                proc_CAT(pp, nwb, rd, ii, recording_info);
             end
         end
+    end
+
+    [nwb, recdev, probe] = proc_PRO(pp, nwb, recording_info, ii, num_recording_devices);
+
+    probe_ctr = 0;
+    for rd = 1 : num_recording_devices
 
         % Record analog traces
         nwb = proc_AIO(pp, nwb, recdev{rd}, ii, recording_info);
@@ -173,11 +173,8 @@ for ii = to_proc
             nwb = proc_CDS(nwb, recdev{rd}, probe{probe_ctr+1});
 
             % SPIKE SORTING
-            try
-                nwb = proc_SPK(pp, nwb, recdev{rd}, probe{probe_ctr+1});
-            catch
-                warning('KS DIDNT PAN OUT!!!!!!')
-            end
+            nwb = proc_SPK(pp, nwb, recdev{rd}, probe{probe_ctr+1});
+
             probe_ctr = probe_ctr + 1;
         end
     end
@@ -186,7 +183,7 @@ for ii = to_proc
     nwbExport(nwb, [pp.NWB_DATA nwb.identifier '.nwb']);
 
     % Cleanup
-    proc_Cleanup(pp, keepers);
+    %proc_Cleanup(pp, keepers);
 
 end
 disp(['SUCCESSFULLY PROCESSED ' num2str(n_procd) ' FILES.'])

@@ -1,8 +1,8 @@
 function pp = pipeline_paths(varargin)
 
 % Defaults
-pp.DATA_SOURCE  = '\\local-pit\ephys\_DATA\_VandC_DATA_PIPELINE\_0_RAW_DATA';
-pp.DATA_DEST    = '\\local-pit\ephys\_DATA\_VandC_DATA_PIPELINE\';
+pp.DATA_SOURCE  = 'D:\_VandC_DATA_PIPELINE\_0_RAW_DATA';
+pp.DATA_DEST    = 'D:\_VandC_DATA_PIPELINE\';
 
 pp.RAW_DATA     = 'D:\_VandC_DATA_PIPELINE\_0_RAW_DATA\';
 pp.CAT_DATA     = 'D:\_VandC_DATA_PIPELINE\_1_CAT_DATA\';

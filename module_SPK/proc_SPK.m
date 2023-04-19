@@ -191,14 +191,29 @@ if ~exist('rez', 'var')
     load([spk_file_path_itt filesep 'rez2.mat']);
 end
 
-unit_idents = unique(rez.st3(:,2))';
+% grab the metrics
+fid = fopen([spk_file_path_itt 'metrics_test.csv'],'rt');
+C = textscan(fid, '%f %f %f %f %f %f %f %f %f %f %f %f %f %f %s %s %f %f %f %f %f %f %f %f %f %f %f', ...
+    'Delimiter', ',', 'HeaderLines', 1, 'EmptyValue', NaN);
+fclose(fid);
+[col_id, cluster_id, firing_rate, presence_ratio, isi_violations, amplitude_cutoff, isolation_distance, l_ratio, ...
+    d_prime, nn_hit_rate, nn_miss_rate, silhouette_score, max_drift, cumulative_drift, epoch_name_quality_metrics, ...
+    epoch_name_waveform_metrics, peak_channel_id, snr, waveform_duration, waveform_halfwidth, PT_ratio, repolarization_slope, ...
+    recovery_slope, amplitude, spread, velocity_above, velocity_below] = deal(C{:});
+
+clear C 
+
+% trying change to cluster id to make compatible with the AIBS postprocess
+%unit_idents = unique(rez.st3(:,2))';
+unit_idents = cluster_id';
+
 if numel(unit_idents) > 2
 
     spike_times = cell(1, numel(unit_idents));
     ctr_i=0;
-    for kk = unit_idents
-        ctr_i = ctr_i + 1;
-        spike_times{ctr_i} = (rez.st3(rez.st3(:,2)==kk,1)./recdev.sampling_rate).';
+     for kk = unit_idents
+         ctr_i = ctr_i + 1;
+         spike_times{ctr_i} = (rez.st3(rez.st3(:,2)==kk,1)./recdev.sampling_rate).';
 
         % isi measures
         temp_isi = diff(spike_times{ctr_i});
@@ -209,7 +224,7 @@ if numel(unit_idents) > 2
         isi_lv(ctr_i) = (3/(numel(temp_isi)-1)) * sum(((isi_0-isi_1)./(isi_0+isi_1)).^2);
 
         clear isi_0 isi_1 temp_isi
-    end
+     end
 
     % grab spike times and indices
     [spike_times_vector, spike_times_index] = util.create_indexed_column(spike_times);
@@ -228,18 +243,6 @@ if numel(unit_idents) > 2
     % grab spike templates/amps
     spike_amplitudes = readNPY([spk_file_path_itt 'amplitudes.npy']);
     spike_amplitudes_index = spike_times_index.data(:);
-
-    % grab the metrics
-    fid = fopen([spk_file_path_itt 'metrics_test.csv'],'rt');
-    C = textscan(fid, '%f %f %f %f %f %f %f %f %f %f %f %f %f %f %s %s %f %f %f %f %f %f %f %f %f %f %f', ...
-        'Delimiter', ',', 'HeaderLines', 1, 'EmptyValue', NaN);
-    fclose(fid);
-    [col_id, cluster_id, firing_rate, presence_ratio, isi_violations, amplitude_cutoff, isolation_distance, l_ratio, ...
-        d_prime, nn_hit_rate, nn_miss_rate, silhouette_score, max_drift, cumulative_drift, epoch_name_quality_metrics, ...
-        epoch_name_waveform_metrics, peak_channel_id, snr, waveform_duration, waveform_halfwidth, PT_ratio, repolarization_slope, ...
-        recovery_slope, amplitude, spread, velocity_above, velocity_below] = deal(C{:});
-
-    clear C
 
     % generate other indices
     waveform_mean_index = probe.num_channels:probe.num_channels:probe.num_channels*numel(unit_idents);

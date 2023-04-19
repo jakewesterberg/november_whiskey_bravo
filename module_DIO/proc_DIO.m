@@ -124,6 +124,17 @@ for mm = 1 : numel(recdev.dio_map)
         event_data{1}.start_time = event_times;
         event_data{1}.stop_time = event_times;
 
+        if exist('event_infos', 'var')
+            for kk = 1 : size(event_infos, 2)
+                if length(split(recdev.dio_map{1}.map, ',')) > 1
+                    t_col_names = split(recdev.dio_map{1}.map, ',');
+                    event_data{1}.(t_col_names{kk}) = event_infos(:,kk);
+                else
+                    event_data{1}.(['col_' num2str(kk)]) = event_infos(:, kk);
+                end
+            end
+        end
+
         jj = 1;
         temp_fields = fields(event_data{jj});
         temp_fields = temp_fields(~strcmp(temp_fields, 'task'));

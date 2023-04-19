@@ -37,45 +37,25 @@ for rd = 0 : num_recording_devices-1
         case 'Blackrock NSx'
 
             recdev{rd+1}.sampling_rate = 30000;
-            recdev{rd+1}.in_file_path = [pp.CAT_DATA nwb.identifier '_dev-' num2str(rd) filesep];
+            recdev{rd+1}.in_file_path = [pp.CAT_DATA nwb.identifier '_dev-' num2str(rd) filesep];    
 
-            ns6s = findFiles(recording_info.Raw_Data_Path{ii}, '.ns6');
-            n_blocks = strfind(lower(ns6s), 'block_');
-            block_no = [];
-            for jj = 1: numel(n_blocks)
-                n_end = strfind(ns6s{jj}(n_blocks{jj}:end), '/');
-                block_no(jj) = str2double(ns6s{jj}(n_blocks{jj}+6:n_blocks{jj}+n_end(1)-2));
-            end
-            n_instances = strfind(lower(ns6s), 'instance');
-            instance_no = [];
-            for jj = 1: numel(n_instances)
-                n_end = strfind(ns6s{jj}(n_instances{jj}:end), '_');
-                instance_no(jj) = str2double(ns6s{jj}(n_instances{jj}+8:n_instances{jj}+n_end(1)-2));
-            end
+            temp_file = findFiles(recdev{rd+1}.in_file_path, '000.dat');
+            temp_file = temp_file{1};
 
-            time_points = 0;
-            for jj = 1:numel(block_no)
-                if instance_no(jj) == rd + 1
-                    temp_data = openNSx(ns6s{jj}, 'noread');
-                    time_points = time_points + temp_data.MetaTags.DataPoints;
-                    clear temp_data
-                end
-            end
+            temp_fid = fopen(temp_file);
+            temp_dat = fread(temp_fid, 'int16');
+
+            time_points = numel(temp_dat);
 
             recdev{rd+1}.time_stamp = 1:time_points;
             recdev{rd+1}.num_samples = length(recdev{rd+1}.time_stamp);
-            recdev{rd+1}.recording_blocks = unique(block_no);
             recdev{rd+1}.device = 'Blackrock NSx';
             recdev{rd+1}.bit2volt = 0.25;
  
-            for ac = 1 : 128
-                if ac < 11
-                    recdev{rd+1}.amplifier_channels(ac).native_channel_name = ['A-00' num2str(ac-1)];
-                elseif ac < 101
-                    recdev{rd+1}.amplifier_channels(ac).native_channel_name = ['A-0' num2str(ac-1)];
-                else
-                    recdev{rd+1}.amplifier_channels(ac).native_channel_name = ['A-' num2str(ac-1)];
-                end
+            channel_files = findFiles(recdev{rd+1}.in_file_path, 'amp-');
+            for ac = 1:numel(channel_files)
+                temp_ch = channel_files{ac}(end-8:end-4);
+                recdev{rd+1}.amplifier_channels(ac).native_channel_name = temp_ch;
             end
 
     end
@@ -93,7 +73,11 @@ for rd = 0 : num_recording_devices-1
 
     for jj = 1:numel(strtrim(split(recording_info.DIO_Port{ii}, ';')))-1
         recdev{rd+1}.dio_map{jj}.description = uncell(strtrim(split(recording_info.DIO_Channels{ii}, ';')), jj);
-        recdev{rd+1}.dio_map{jj}.map = eval(uncell(strtrim(split(recording_info.DIO_Port{ii}, ';')), jj));
+        try
+            recdev{rd+1}.dio_map{jj}.map = eval(uncell(strtrim(split(recording_info.DIO_Port{ii}, ';')), jj));
+        catch
+            recdev{rd+1}.dio_map{jj}.map = uncell(strtrim(split(recording_info.DIO_Port{ii}, ';')), jj);
+        end
     end
 
     recdev{rd+1}.adc_map = strtrim(split(recording_info.AIO_Channels{ii}, ';'));

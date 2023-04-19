@@ -1,14 +1,15 @@
-function [compiled_event_codes, compiled_event_times] = compile_nev_event_data(dir_in)
+function [compiled_event_codes, compiled_event_times, compiled_event_infos] = ...
+    compile_nev_event_data(dir_in)
 
 % event codes are the only temporally coherent signal sent to the
 % different instances, therefore, lets use them to pad the data correctly.
 % First we need to grab all codes and times...
 
-if ~exist("dir_in", "var")
-    dir_in = 'D:\_VandC_DATA_PIPELINE\_0_RAW_DATA\sub-N_ses-20220308_exp-ITstim_dev-0';
-end
-
 nevs = findFiles(dir_in, '.nev');
+mats = findFiles(dir_in, '.mat');
+if ~isempty(mats)
+    mats = sort(mats);
+end
 
 n_blocks = strfind(lower(nevs), 'block_');
 block_no = [];
@@ -29,10 +30,33 @@ unique_instances = sort(unique(instance_no));
 
 compiled_event_codes = {};
 compiled_event_times = {};
+compiled_event_infos = {};
 
 for ii = 1 : numel(unique_blocks)
-    for jj = 1 : numel(unique_instances)
 
+    if ~isempty(mats)
+        if numel(mats) ~= numel(unique_blocks)
+            error('MISMATCHED NUMBER OF INFO FILES RELATIVE TO UNIQUE BLOCKS')
+        end
+        load(mats{ii}, 'MAT', 'TZ')
+
+        if size(MAT, 2) > size(MAT, 1)
+            MAT = MAT';
+        end
+
+        if exist('TZ', 'var')
+            if size(MAT, 1) ~= TZ
+                MAT = [MAT; zeros(TZ - size(MAT, 1), size(MAT, 2))];
+            end
+        end
+
+        compiled_event_infos{ii} = MAT;
+
+        clear MAT; if exist('TZ', 'var'); clear TZ; end
+    end
+
+    for jj = 1 : numel(unique_instances)
+  
         found_file = false;
         while_ctr = 0;
         while ~found_file
