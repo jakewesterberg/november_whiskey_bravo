@@ -55,18 +55,11 @@ for ii = 1 : size(compiled_nev_event_codes, 1)
         end
         earliest_nan = min(early_nan);
         temp_events = temp_events(1:earliest_nan-1,:);
-        temp_times = temp_times(1:earliest_nan-1,:);
-        good_ind = zeros(size(temp_events), 'logical');
-        for jj = events_of_interest
-            good_ind(temp_events == jj) = 1;
-        end
-        events_per_instance = sum(good_ind);
+        temp_
     end
 
     temp_eoi = reshape(temp_events(good_ind), events_per_instance(1), []);
     temp_toi = reshape(temp_times(good_ind), events_per_instance(1), []);
-
-    clear temp_events temp_times good_ind events_per_instance
 
     diff_toi = diff(temp_toi, 1);
     mode_toi = mode(diff_toi, 2);

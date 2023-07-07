@@ -431,10 +431,11 @@ if probe.last_probe
         'data_unit', 'spikes', ...
         'filtering', 'spike times at discrete times', ...
         'timestamps', (0:size(conv_data,2)-1)/probe.downsample_fs);
-
-    raster_series = types.core.ProcessingModule('spike_train_data', raster_electrical_series, ...
-        'description', 'Spike trains in time');
-    nwb.processing.set('spike_train', raster_series);
+    
+%     %LEAVING HERE IN CASE THE DISCRETE DATA IS REQD
+%     raster_series = types.core.ProcessingModule('spike_train_data', raster_electrical_series, ...
+%         'description', 'Spike trains in time');
+%     nwb.processing.set('spike_train', raster_series);
 
     Half_BW = ceil( (20*(probe.downsample_fs/1000)) * 8 );
     x = 0 : Half_BW;

@@ -1,4 +1,5 @@
-function [compiled_event_codes, compiled_event_times, compiled_event_infos] = ...
+function [compiled_event_codes, compiled_event_times, ...
+    compiled_event_infos, compiled_event_header] = ...
     compile_nev_event_data(dir_in)
 
 % event codes are the only temporally coherent signal sent to the
@@ -6,16 +7,16 @@ function [compiled_event_codes, compiled_event_times, compiled_event_infos] = ..
 % First we need to grab all codes and times...
 
 nevs = findFiles(dir_in, '.nev');
-mats = findFiles(dir_in, '.mat');
+mats = findFiles(dir_in, 'ERF'); %'.mat');
 if ~isempty(mats)
     mats = sort(mats);
 end
 
-n_blocks = strfind(lower(nevs), 'block_');
+n_blocks = strfind(lower(nevs), 'b00'); %strfind(lower(nevs), 'block_');
 block_no = [];
 for ii = 1: numel(n_blocks)
-    n_end = strfind(nevs{ii}(n_blocks{ii}:end), '/');
-    block_no(ii) = str2double(nevs{ii}(n_blocks{ii}+6:n_blocks{ii}+n_end(1)-2));
+    n_end = strfind(nevs{ii}(n_blocks{ii}:end), '.'); %'/');
+    block_no(ii) = str2double(nevs{ii}(n_blocks{ii}+3:n_blocks{ii}+n_end(1)-2)); %6
 end
 
 n_instances = strfind(lower(nevs), 'instance');
@@ -31,14 +32,21 @@ unique_instances = sort(unique(instance_no));
 compiled_event_codes = {};
 compiled_event_times = {};
 compiled_event_infos = {};
+compiled_event_header = [];
 
 for ii = 1 : numel(unique_blocks)
 
     if ~isempty(mats)
         if numel(mats) ~= numel(unique_blocks)
-            error('MISMATCHED NUMBER OF INFO FILES RELATIVE TO UNIQUE BLOCKS')
+            txts = findFiles(dir_in, '.log');
+            if numel(txts) ~= numel(unique_blocks)
+                error('MISMATCHED NUMBER OF INFO FILES RELATIVE TO UNIQUE BLOCKS')
+            else
+                [MAT, compiled_event_header] = text_log_parse(txts{ii});
+            end
+        else
+            load(mats{ii}, 'MAT', 'TZ')
         end
-        load(mats{ii}, 'MAT', 'TZ')
 
         if size(MAT, 2) > size(MAT, 1)
             MAT = MAT';

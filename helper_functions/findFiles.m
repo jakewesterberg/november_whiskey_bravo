@@ -1,4 +1,8 @@
-function dir_cont = findFiles(dir_in,search_exp,omit_terms)
+function dir_cont = findFiles(dir_in, search_exp, recurse, omit_terms)
+
+if nargin < 3
+    recurse = 1;
+end
 
 dir_str = dir(dir_in);
 dir_cont = {};
@@ -11,7 +15,7 @@ for itt_str = 1 : length(dir_str)
         dir_cont{length(dir_cont) + 1} = [ dir_in '/' dir_str(itt_str).name];
         
     elseif dir_str(itt_str).isdir && ~strcmp(dir_str(itt_str).name,'.') && ...
-            ~strcmp(dir_str(itt_str).name,'..')
+            ~strcmp(dir_str(itt_str).name,'..') && recurse
         
         file_name = fullfile(dir_in,dir_str(itt_str).name);
         temp_dir_cont = findFiles(file_name,search_exp);
