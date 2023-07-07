@@ -1,4 +1,4 @@
-# intan2nwb
+# november_whiskey_bravo
  Transforms intan recording session to distributable NWB files.
  1. Extracts recording device(s)
  2. Extracts Analog I/O data
