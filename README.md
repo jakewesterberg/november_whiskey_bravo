@@ -10,9 +10,9 @@
 # requirements
  1. matnwb (forked version from jake)
  2. npy-matlab
- 3. Kilosort (2.0, preferred atm, jake's forked version has config files)
+ 3. Kilosort (2.0, preferred atm, jake's forked version has config files, currently included in forked_toolboxes)
   a. Visual Studio C++ compiler (Community 2019 confirmed working)
- 4. ecephys_spike_sorting (from Allen Institute) 
+ 4. ecephys_spike_sorting (from Allen Institute, currently included in forked_toolboxes) 
   a. requires py env with v3.7
   b. argschema==1.17.5
   c. marshmallow==2.19.2
