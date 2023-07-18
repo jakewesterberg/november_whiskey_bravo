@@ -1,5 +1,6 @@
 function [realigned_nev_event_codes, realigned_nev_event_times, ...
-    realigned_nev_event_infos, realigned_indices, block_lengths] = ...
+    realigned_nev_event_infos, realigned_indices, block_lengths, ...
+    nev_valid] = ...
     align_nev_event_data(compiled_nev_event_codes, compiled_nev_event_times, ...
     compiled_nev_event_infos, events_of_interest)
 
@@ -7,7 +8,7 @@ if nargin < 3
     compiled_nev_event_infos = {};
 end
 if nargin < 4
-    events_of_interest = [1, 2];
+    events_of_interest = 1;
 end
 
 realigned_indices = {};
@@ -17,24 +18,32 @@ for ii = 1 : size(compiled_nev_event_codes, 1)
     temp_events = [];
     temp_times = [];
     for jj = 1 : size(compiled_nev_event_codes, 2)
-        if jj == 1
-            temp_events(:,jj) = double(compiled_nev_event_codes{ii,jj});
-            temp_times(:,jj) = double(compiled_nev_event_times{ii,jj});
-        elseif numel(compiled_nev_event_codes{ii,jj}) == size(temp_events, 1)
-            temp_events(:,jj) = double(compiled_nev_event_codes{ii,jj});
-            temp_times(:,jj) = double(compiled_nev_event_times{ii,jj});
-        elseif numel(compiled_nev_event_codes{ii,jj}) < size(temp_events, 1)
-            temp_events(:,jj) = [double(compiled_nev_event_codes{ii,jj}); ...
-                nan(size(temp_events, 1) - numel(compiled_nev_event_codes{ii,jj}), 1)];
-            temp_times(:,jj) = [double(compiled_nev_event_times{ii,jj}); ...
-                nan(size(temp_times, 1) - numel(compiled_nev_event_times{ii,jj}), 1)];
+        if ~isempty(compiled_nev_event_codes{ii,jj})
+            if jj == 1
+                temp_events(:,jj) = double(compiled_nev_event_codes{ii,jj});
+                temp_times(:,jj) = double(compiled_nev_event_times{ii,jj});
+            elseif numel(compiled_nev_event_codes{ii,jj}) == size(temp_events, 1)
+                temp_events(:,jj) = double(compiled_nev_event_codes{ii,jj});
+                temp_times(:,jj) = double(compiled_nev_event_times{ii,jj});
+            elseif numel(compiled_nev_event_codes{ii,jj}) < size(temp_events, 1)
+                temp_events(:,jj) = [double(compiled_nev_event_codes{ii,jj}); ...
+                    nan(size(temp_events, 1) - numel(compiled_nev_event_codes{ii,jj}), 1)];
+                temp_times(:,jj) = [double(compiled_nev_event_times{ii,jj}); ...
+                    nan(size(temp_times, 1) -  numel(compiled_nev_event_times{ii,jj}), 1)];
+            else
+                temp_events = [temp_events; nan(numel(compiled_nev_event_codes{ii,jj}) - ...
+                    size(temp_events, 1), size(temp_events, 2))];
+                temp_events(:,jj) = double(compiled_nev_event_codes{ii,jj});
+                temp_times = [temp_times; nan(numel(compiled_nev_event_times{ii,jj}) - ...
+                    size(temp_times, 1), size(temp_times, 2))];
+                temp_times(:,jj) = double(compiled_nev_event_times{ii,jj});
+            end
+            nev_valid(ii,jj) = 1;
         else
-            temp_events = [temp_events; nan(numel(compiled_nev_event_codes{ii,jj}) - ...
-                size(temp_events, 1), size(temp_events, 2))];
-            temp_events(:,jj) = double(compiled_nev_event_codes{ii,jj});
-            temp_times = [temp_times; nan(numel(compiled_nev_event_times{ii,jj}) - ...
-                size(temp_times, 1), size(temp_times, 2))];
-            temp_times(:,jj) = double(compiled_nev_event_times{ii,jj});
+            % Fake it till you make it
+            temp_events(:,jj) = temp_events(:,1);
+            temp_times(:,jj) = temp_times(:,1);
+            nev_valid(ii,jj) = 0;
         end
     end
 
@@ -42,7 +51,7 @@ for ii = 1 : size(compiled_nev_event_codes, 1)
     for jj = events_of_interest
         good_ind(temp_events == jj) = 1;
     end
-
+ 
     events_per_instance = sum(good_ind);
     if numel(unique(events_per_instance)) ~= 1
         warning('EVENTS INCONSISTENT ACROSS INSTANCES, ATTEMPTING CROP')

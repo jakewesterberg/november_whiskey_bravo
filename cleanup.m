@@ -1,4 +1,4 @@
-function proc_Cleanup(pp, keepers)
+function cleanup(pp, keepers)
 
 if nargin < 2
     keepers = {'RAW', 'NWB'};

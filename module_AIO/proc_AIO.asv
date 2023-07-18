@@ -103,7 +103,7 @@ for jj = 1 : numel(adc_map)
                 );
 
             pupil_tracking = types.core.EyeTracking();
-            pupil_tracking.spatialseries.set('pupil_1_dimensions_data', pupil_position);
+            pupil_tracking.timeseries.set('pupil_1_dimensions_data', pupil_position);
             nwb.acquisition.set(['pupil_1_tracking_dev_' num2str(recdev.num)], pupil_tracking);
 
         end
@@ -129,44 +129,21 @@ for jj = 1 : numel(adc_map)
 
         eye_tracking = types.core.EyeTracking();
         eye_tracking.spatialseries.set('eye_2_tracking_data', eye_position);
+
+        pupil_diameter = types.core.TimeSeries( ...
+            'description', 'Pupil diameter.', ...
+            'data', temp_pdat, ...
+            'starting_time_rate', 1000, ... % Hz
+            'data_unit', 'arbitrary units', ...
+            'timestamps', recdev.time_stamps_s_ds, ...
+            'timestamps_unit', 'seconds' ...
+            );
+
+        pupil_tracking = types.core.PupilTracking();
+        pupil_tracking.timeseries.set('pupil_2_diameter_data', pupil_diameter);
+
         nwb.acquisition.set(['eye_2_tracking_dev_' num2str(recdev.num)], eye_tracking);
-
-        find_p = find(ismember(lower(adc_map), "eye_2_pupil"));
-        if sum(find_p)
-            temp_pdat(1,:) = downsample(recdev.board_adc_data(find_p, :), downsample_factor);
-
-            pupil_diameter = types.core.TimeSeries( ...
-                'description', 'Pupil diameter.', ...
-                'data', temp_pdat, ...
-                'starting_time_rate', 1000, ... % Hz
-                'data_unit', 'arbitrary units', ...
-                'timestamps', recdev.time_stamps_s_ds, ...
-                'timestamps_unit', 'seconds' ...
-                );
-
-            pupil_tracking = types.core.PupilTracking();
-            pupil_tracking.timeseries.set('pupil_2_diameter_data', pupil_diameter);
-            nwb.acquisition.set(['pupil_2_tracking_dev_' num2str(recdev.num)], pupil_tracking);
-        else
-            find_p_x = find(ismember(lower(adc_map), "eye_2_pupil_x"));
-            find_p_y = find(ismember(lower(adc_map), "eye_2_pupil_y"));
-
-            temp_pdat(1,:) = downsample(recdev.board_adc_data(find_p_x, :), downsample_factor);
-            temp_pdat(2,:) = downsample(recdev.board_adc_data(find_p_y, :), downsample_factor);
-
-            pupil_position = types.core.SpatialSeries( ...
-                'description', 'The dimensions of the pupil. Actual sampling rate different than reported (Reported=1kHz)', ...
-                'data', temp_pdat, ...
-                'starting_time_rate', 1000, ... % Hz
-                'timestamps', recdev.time_stamps_s_ds, ...
-                'timestamps_unit', 'seconds' ...
-                );
-
-            pupil_tracking = types.core.EyeTracking();
-            pupil_tracking.spatialseries.set('pupil_2_dimensions_data', pupil_position);
-            nwb.acquisition.set(['pupil_2_tracking_dev_' num2str(recdev.num)], pupil_tracking);
-
-        end
+        nwb.acquisition.set(['pupil_2_tracking_dev_' num2str(recdev.num)], pupil_tracking);
 
         clear temp_* find_*
     end
