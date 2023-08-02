@@ -115,14 +115,14 @@ for ii = to_proc
             nwb = proc_CDS(nwb, recdev{rd}, probe{probe_ctr+1});
 
             % BIN DATA
-%             if ~exist([pp.BIN_DATA nwb.identifier filesep ...
-%                     nwb.identifier '_probe-' num2str(probe{probe_ctr+1}.num) ...
-%                     '.bin'], 'file')
-%                 proc_BIN(pp, nwb, recdev{rd}, probe{probe_ctr+1});
-%             end
-% 
-%             % SPIKE SORTING
-%             nwb = proc_SPK(pp, nwb, recdev{rd}, probe{probe_ctr+1});
+            if ~exist([pp.BIN_DATA nwb.identifier filesep ...
+                    nwb.identifier '_probe-' num2str(probe{probe_ctr+1}.num) ...
+                    '.bin'], 'file')
+                proc_BIN(pp, nwb, recdev{rd}, probe{probe_ctr+1});
+            end
+
+            % SPIKE SORTING
+            nwb = proc_SPK(pp, nwb, recdev{rd}, probe{probe_ctr+1});
 
             probe_ctr = probe_ctr + 1;
 

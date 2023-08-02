@@ -45,6 +45,7 @@ downsample_factor = recdev.sampling_rate / 1000;
 adc_map = recdev.adc_map;
 
 pd_ctr = 0;
+stim_ctr = 0;
 rew_ctr = 0;
 laser_ctr = 0;
 for jj = 1 : numel(adc_map)
@@ -200,6 +201,24 @@ for jj = 1 : numel(adc_map)
 
         nwb.intervals.set(['photodiode_' num2str(pd_ctr) '_detected_changes_dev_' num2str(recdev.num)], trials); clear trials
 
+    end
+
+    if strcmp(lower(adc_map(jj)), 'stimulator')
+        stim_ctr = stim_ctr + 1;
+
+        stim_state = types.core.TimeSeries( ...
+            'description', 'stimulator state', ...
+            'data', temp_dat, ...
+            'data_unit', 'Volts', ...
+            'starting_time_rate', 1000, ... % Hz
+            'timestamps', recdev.time_stamps_s_ds, ...
+            'timestamps_unit', 'seconds' ...
+            );
+
+        stim_tracking = types.core.BehavioralTimeSeries();
+        stim_tracking.timeseries.set(['stimulator_' num2str(pd_ctr) '_tracking_data'], stim_state);
+
+        nwb.acquisition.set(['stimulator_' num2str(pd_ctr) '_tracking_dev_' num2str(recdev.num)], stim_tracking);
     end
 
     if strcmp(lower(adc_map(jj)), 'reward')
