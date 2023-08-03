@@ -216,9 +216,9 @@ for jj = 1 : numel(adc_map)
             );
 
         stim_tracking = types.core.BehavioralTimeSeries();
-        stim_tracking.timeseries.set(['stimulator_' num2str(pd_ctr) '_tracking_data'], stim_state);
+        stim_tracking.timeseries.set(['stimulator_' num2str(stim_ctr) '_tracking_data'], stim_state);
 
-        nwb.acquisition.set(['stimulator_' num2str(pd_ctr) '_tracking_dev_' num2str(recdev.num)], stim_tracking);
+        nwb.acquisition.set(['stimulator_' num2str(stim_ctr) '_tracking_dev_' num2str(recdev.num)], stim_tracking);
     end
 
     if strcmp(lower(adc_map(jj)), 'reward')
