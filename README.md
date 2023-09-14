@@ -1,6 +1,7 @@
 # november_whiskey_bravo
 Jake Westerberg (NIN, Vanderbilt), Maureen van der Grinten (NIN), Patrick Meng (Vanderbilt)
- Transforms intan recording session to distributable NWB files.
+
+Transforms intan recording session to distributable NWB files.
  1. Extracts recording device(s)
  2. Extracts Analog I/O data
  3. Extracts Digital I/O data
