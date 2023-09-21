@@ -11,6 +11,7 @@ pp.SPK_DATA     = 'D:\_VandC_DATA_PIPELINE\_3_SPK_DATA\';
 pp.SSC_DATA     = 'D:\_VandC_DATA_PIPELINE\_4_SSC_DATA\';
 pp.CNX_DATA     = 'D:\_VandC_DATA_PIPELINE\_5_CNX_DATA\';
 pp.NWB_DATA     = 'D:\_VandC_DATA_PIPELINE\_6_NWB_DATA\';
+pp.ART_DATA     = 'D:\_VandC_DATA_PIPELINE\_7_ART_DATA\';
 
 pp.CONDA        = 'C:\Users\jakew\anaconda3';
 pp.REPO         = 'C:\Users\jakew\OneDrive\Documents\GitHub\november_whiskey_bravo\';

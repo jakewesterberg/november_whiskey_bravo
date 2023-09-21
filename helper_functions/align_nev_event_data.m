@@ -8,7 +8,7 @@ if nargin < 3
     compiled_nev_event_infos = {};
 end
 if nargin < 4
-    events_of_interest = 1;
+    events_of_interest = 2;
 end
 
 realigned_indices = {};
@@ -136,7 +136,8 @@ realigned_nev_event_codes = temp_event_codes;
 realigned_nev_event_times = temp_event_times ./ 30000;
 
 if ~isempty(realigned_nev_event_infos)
-    if size(realigned_nev_event_infos,1) ~= numel(realigned_nev_event_codes)
+    if size(realigned_nev_event_infos,1) ~= numel(realigned_nev_event_codes) & ...
+            ~iscell(realigned_nev_event_infos)
         warning('INFOS SIZE DOES NOT MATCH NUMBER OF DETECTED TRIALS. CHECK EVENTS OF INTEREST')
         realigned_nev_event_infos = [realigned_nev_event_infos; ...
             zeros(numel(realigned_nev_event_codes) - size(realigned_nev_event_infos,1), ...

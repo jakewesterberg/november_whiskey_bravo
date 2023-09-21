@@ -94,13 +94,11 @@ for ii = 1 : numel(unique_blocks)
             load([pp.RAW_DATA ident filesep 'tracker_params.mat'])
             params = array2table(allPara, "RowNames",var_names);
             trial_params_all{ii} = params;
-            allPara2 = [];
             for ap = 1 : size(allPara,1)
                 if ~unique(isnan(double(allPara(ap,:))))
-                    allPara2(:,ap) = double(allPara(ap,:));
+                    allPara2{:,ap} = double(allPara(ap,:));
                 else
-                    allPara2(:,ap) = zeros(size(allPara,2),1);
-                    allPara2(strcmp(allPara(ap,:), "correct"), ap) = 1; 
+                    allPara2{:,ap} = convertStringsToChars(allPara(ap,:));
                 end
             end
             compiled_event_infos{ii,1} = allPara2;

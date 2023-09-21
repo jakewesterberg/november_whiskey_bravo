@@ -5,28 +5,22 @@ if nargin < 5
 end
 
 if nargin < 6
-    method_version = 2;
+    method_version = 1;
 end
-
-if ~exist([pp.BIN_DATA nwb.identifier filesep], 'dir')
-    mkdir([pp.BIN_DATA nwb.identifier filesep])
-end
-
-in_file_path = recdev.in_file_path;
-out_file_path = [pp.BIN_DATA nwb.identifier filesep];
-file_name = [nwb.identifier '_probe-' num2str(probe.num) '.bin'];
-port_letter = probe.port;
-
-try
-    NUM_CHANNELS = sum(vertcat(recdev.amplifier_channels.port_prefix) == upper(port_letter));
-catch
-    NUM_CHANNELS = probe.num_channels;
-end
-
-num_samples = recdev.num_samples;
 
 switch method_version
     case 1
+        if ~exist([pp.BIN_DATA nwb.identifier filesep], 'dir')
+            mkdir([pp.BIN_DATA nwb.identifier filesep])
+        end
+
+        % Create Spiking bin file
+
+        in_file_path = recdev.in_file_path;
+        out_file_path = [pp.BIN_DATA nwb.identifier filesep];
+        file_name = [nwb.identifier '_probe-' num2str(probe.num) '.bin'];
+        port_letter = probe.port;
+
         %This file when run, takes intan data in the "One file per channel" format,
         %and returns a num_channels x num_samples_total array of binary data
         %contained in a single file
@@ -52,6 +46,14 @@ switch method_version
         if (exist(file_name,'file'))
             delete(file_name);
         end
+
+        try
+            NUM_CHANNELS = sum(vertcat(recdev.amplifier_channels.port_prefix) == upper(port_letter));
+        catch
+            NUM_CHANNELS = probe.num_channels;
+        end
+
+        num_samples = recdev.num_samples;
 
         %Slice up the data into more manageable pieces, so that large files will
         %fit in RAM
@@ -144,16 +146,9 @@ switch method_version
 
     case 2
         if ~exist([pp.REPO 'module_BIN\quickened_binarization.mexw64'], 'file');
-            mex_path = [pp.REPO 'module_BIN\quickened_binarization.cpp'];
-            mex mex_path
-        end
+            mex_path = [pp.REPO 'module_BIN\quickened_binarization.mexw64']
+            mex [pp.REPO 'module_BIN\quickened_binarization.mexw64']
 
-        quickened_binarization( ...
-            NUM_CHANNELS, ...
-            num_samples, ...
-            char(fullfile(in_file_path)), ...
-            port_letter, ...
-            char(fullfile(file_name)));
 
 end
 

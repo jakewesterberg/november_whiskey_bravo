@@ -12,7 +12,7 @@
     const char PATH_SEP = '/';
 #endif
 
-void mergeBinaryFiles(int NUM_CHANNELS, int num_samples, std::string in_file_path, char port_letter, std::string file_name) {
+void quickened_binarization(int NUM_CHANNELS, int num_samples, std::string in_file_path, char port_letter, std::string file_name) {
         // Define the size of the chunks to read/write at a time
     const int CHUNK_SIZE = 10000; // Adjust this value as needed to fit in your memory
 
@@ -112,5 +112,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     std::string file_name = std::string(file_name_temp);
     mxFree(file_name_temp);
     
-    mergeBinaryFiles(NUM_CHANNELS, num_samples, in_file_path, port_letter, file_name);
+    quickened_binarization(NUM_CHANNELS, num_samples, in_file_path, port_letter, file_name);
 }

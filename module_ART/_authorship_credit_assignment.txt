@@ -1,0 +1,3 @@
+Author of this module is Maureen van der Grinten (NIN-KNAW). 
+
+This is a note for Jake (by Jake). Not that he would forget that Maureen wrote this, but because he noticed that Maureen didn't credit herself in the functions! So I write this awkward text file, mostly to see if anyone will notice it and to direct credit where credit is deserved...

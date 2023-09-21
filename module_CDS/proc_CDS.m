@@ -1,6 +1,10 @@
-function nwb = proc_CDS(nwb, recdev, probe)
+function nwb = proc_CDS(pp, nwb, recdev, probe, ART)
 
 % Let's change this to working on the bin files?
+
+if nargin < 4
+    ART = 0;
+end
 
 % Initialize DC offset filter
 %[DC_offset_bwb, DC_offset_bwa]      = butter(1, 0.1/(recdev.sampling_rate/2), 'high');
@@ -51,39 +55,67 @@ bit2volt = recdev.bit2volt;
 
 if ~isempty(gcp('nocreate'));    delete(gcp);    end
 pool1 = parpool(workers);
-parfor kk = 1:probe.num_channels
+switch ART
+    case 0
+        parfor kk = 1:probe.num_channels
 
-    % Open file and init data
-    current_fid             = fopen(in_file_path + "\amp-" + pvar_amp_ch{kk} + ".dat" , 'r');
-    current_data            = double(fread(current_fid, num_samples, 'int16')) .* bit2volt;
+            % Open file and init data
+            current_fid             = fopen(in_file_path + "\amp-" + pvar_amp_ch{kk} + ".dat" , 'r');
+            current_data            = double(fread(current_fid, num_samples, 'int16')) .* bit2volt;
 
-    muae(kk,:)  = downsample(filtfilt(muae_power_bwb, muae_power_bwa, ...
-        abs(filtfilt(muae_bwb, muae_bwa, ...tha
-        current_data))), pvar_ds_factor);
+            muae(kk,:)  = downsample(filtfilt(muae_power_bwb, muae_power_bwa, ...
+                abs(filtfilt(muae_bwb, muae_bwa, ...tha
+                current_data))), pvar_ds_factor);
 
-    lfp(kk,:)   = downsample(filtfilt(lfp_bwb, lfp_bwa, ...
-        current_data), pvar_ds_factor);
+            lfp(kk,:)   = downsample(filtfilt(lfp_bwb, lfp_bwa, ...
+                current_data), pvar_ds_factor);
 
-    fclose(current_fid);
-    disp([num2str(kk) '/' num2str(num_channels) ' COMPLETED.'])
+            fclose(current_fid);
+            disp([num2str(kk) '/' num2str(num_channels) ' COMPLETED.'])
 
-    %     muae(kk,:)  = downsample(filtfilt(muae_power_bwb, muae_power_bwa, ...
-    %         abs(filtfilt(muae_bwb, muae_bwa, ...tha
-    %         filtfilt(DC_offset_bwb, DC_offset_bwa, ...
-    %         current_data)))), pvar_ds_factor);
-    % Setup array on GPU or in mem depending on run parameters
-    %             current_data = gpuArray(double(fread(current_fid, probe.num_samples, 'int16')) * 0.195);
-    %             muae(kk,:)  = gather(downsample(filtfilt(muae_power_bwb, muae_power_bwa, ...
-    %                 abs(filtfilt(muae_bwb, muae_bwa, ...
-    %                 filtfilt(DC_offset_bwb, DC_offset_bwa, ...
-    %                 current_data)))), pvar_ds_factor));
-    %             lfp(kk,:)   = gather(downsample(filtfilt(lfp_bwb, lfp_bwa, ...
-    %                 filtfilt(DC_offset_bwb, DC_offset_bwa, ...
-    %                 current_data)), pvar_ds_factor));
-    %             reset(gpuDevice)
-    %            reset(gpuDevice)
+            %     muae(kk,:)  = downsample(filtfilt(muae_power_bwb, muae_power_bwa, ...
+            %         abs(filtfilt(muae_bwb, muae_bwa, ...tha
+            %         filtfilt(DC_offset_bwb, DC_offset_bwa, ...
+            %         current_data)))), pvar_ds_factor);
+            % Setup array on GPU or in mem depending on run parameters
+            %             current_data = gpuArray(double(fread(current_fid, probe.num_samples, 'int16')) * 0.195);
+            %             muae(kk,:)  = gather(downsample(filtfilt(muae_power_bwb, muae_power_bwa, ...
+            %                 abs(filtfilt(muae_bwb, muae_bwa, ...
+            %                 filtfilt(DC_offset_bwb, DC_offset_bwa, ...
+            %                 current_data)))), pvar_ds_factor));
+            %             lfp(kk,:)   = gather(downsample(filtfilt(lfp_bwb, lfp_bwa, ...
+            %                 filtfilt(DC_offset_bwb, DC_offset_bwa, ...
+            %                 current_data)), pvar_ds_factor));
+            %             reset(gpuDevice)
+            %            reset(gpuDevice)
+        end
 
+    case 1
+        in_file_path = [pp.ART_DATA nwb.identifier '_dev-' num2str(recdev.num)];
+        parfor kk = 1:probe.num_channels
+
+            % Open file and init data
+            current_fid_mua             = fopen(in_file_path + "\MUA_amp-" + pvar_amp_ch{kk} + ".dat" , 'r');
+            current_data_mua            = double(fread(current_fid_mua, num_samples, 'int16')) .* bit2volt;
+
+            muae(kk,:)  = downsample(filtfilt(muae_power_bwb, muae_power_bwa, ...
+                abs(filtfilt(muae_bwb, muae_bwa, ...tha
+                current_data_mua))), pvar_ds_factor);
+
+            fclose(current_fid_mua);
+
+            % Open file and init data
+            current_fid_lfp             = fopen(in_file_path + "\LFP_amp-" + pvar_amp_ch{kk} + ".dat" , 'r');
+            current_data_lfp            = double(fread(current_fid_lfp, num_samples, 'int16')) .* bit2volt;
+
+            lfp(kk,:)   = downsample(filtfilt(lfp_bwb, lfp_bwa, ...
+                current_data_lfp), pvar_ds_factor);
+
+            fclose(current_fid_lfp);
+            disp([num2str(kk) '/' num2str(num_channels) ' COMPLETED.'])
+        end
 end
+
 delete(pool1)
 clear pvar_*
 

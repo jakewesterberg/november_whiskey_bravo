@@ -3,22 +3,21 @@ function proc_CAT(pp, nwb, rd, rii, recording_info)
 switch recording_info.Raw_Data_Format{rii}
     case 'Blackrock NSx'
 
-        if ~exist([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1)], 'dir')
-            mkdir([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1)]);
-        end
-
         [compiled_event_codes, compiled_event_times, ...
             compiled_event_infos, event_header, ...
             bad_blocks, bad_instance_specific_blocks] = ...
             compile_nev_event_data( ...
             ...recording_info.Raw_Data_Path{rii});
-            [pp.RAW_DATA nwb.identifier], [pp.CAT_DATA nwb.identifier '_dev-' num2str(rd-1)], ...
-            pp, nwb.identifier);
+            [pp.RAW_DATA nwb.identifier], pp, nwb);
 
         code_of_interest = 2;
         [event_codes, event_times, event_infos, realigned_indices, block_lengths, nev_valid] = ...
             align_nev_event_data( ...
             compiled_event_codes, compiled_event_times, compiled_event_infos, code_of_interest);
+
+        if ~exist([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1)], 'dir')
+            mkdir([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1)]);
+        end
 
         file_name = 'board-DIGITAL-IN-aggregated.mat';
         save([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1) filesep file_name], ...

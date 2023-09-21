@@ -127,7 +127,11 @@ for mm = 1 : numel(recdev.dio_map)
         if exist('event_infos', 'var')
             for kk = 1 : size(event_infos, 2)
                 if ~isempty(event_header)
-                    event_data{1}.(event_header{kk}) = event_infos(:,kk);
+                    if iscell(event_infos(:,kk))
+                        event_data{1}.(event_header{kk}) = event_infos{kk};
+                    else
+                        event_data{1}.(event_header{kk}) = event_infos(:,kk);
+                    end
                 else
                     if length(split(recdev.dio_map{1}.map, ',')) > 1
                         t_col_names = split(recdev.dio_map{1}.map, ',');
