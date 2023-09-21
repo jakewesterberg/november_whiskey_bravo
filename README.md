@@ -1,13 +1,16 @@
 # november_whiskey_bravo
- Transforms intan recording session to distributable NWB files.
+Jake Westerberg (NIN, Vanderbilt), Maureen van der Grinten (NIN), Patrick Meng (Vanderbilt)
+
+Transforms intan recording session to distributable NWB files.
  1. Extracts recording device(s)
  2. Extracts Analog I/O data
  3. Extracts Digital I/O data
- 4. Binarizes raw neural data
- 5. Filters raw data to LFP (1-250 Hz) and MUA (|500-5000 Hz|)
- 6. Kilosorts binary data
+ 4. Performs electrical stimulation artifact removal
+ 5. Binarizes raw neural data
+ 6. Filters raw data to LFP and MUAe
+ 7. Kilosorts binary data
 
-# requirements
+# requirements (included in forked toolboxes)
  1. matnwb (forked version from jake)
  2. npy-matlab
  3. Kilosort (2.0, preferred atm, jake's forked version has config files, currently included in forked_toolboxes)
@@ -17,4 +20,3 @@
   b. argschema==1.17.5
   c. marshmallow==2.19.2
   d. Anaconda 3.0 works well for managing this...
-
