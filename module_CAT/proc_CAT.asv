@@ -3,20 +3,29 @@ function proc_CAT(pp, nwb, rd, rii, recording_info)
 switch recording_info.Raw_Data_Format{rii}
     case 'Blackrock NSx'
 
+        if ~exist([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1)], 'dir')
+            mkdir([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1)]);
+        end
+
         [compiled_event_codes, compiled_event_times, ...
             compiled_event_infos, event_header, ...
-            bad_blocks, bad_instance_specific_blocks] = ...
+            bad_blocks, bad_instance_specific_blocks, ...
+            good_blocks] = ...
             compile_nev_event_data( ...
             ...recording_info.Raw_Data_Path{rii});
-            [pp.RAW_DATA nwb.identifier], pp, nwb);
+            [pp.RAW_DATA nwb.identifier], [pp.CAT_DATA nwb.identifier '_dev-' num2str(rd-1)], ...
+            pp, nwb.identifier);
 
         code_of_interest = 2;
         [event_codes, event_times, event_infos, realigned_indices, block_lengths, nev_valid] = ...
             align_nev_event_data( ...
             compiled_event_codes, compiled_event_times, compiled_event_infos, code_of_interest);
 
-        if ~exist([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1)], 'dir')
-            mkdir([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1)]);
+        for ii = 1:numel(good_blocks)
+            event_infos(event_infos(:,end) == ii, end) = good_blocks(ii);
+        end
+        if ~isempty(event_header)
+            event_header{end+1} = 'recording_block';
         end
 
         file_name = 'board-DIGITAL-IN-aggregated.mat';
@@ -35,9 +44,17 @@ switch recording_info.Raw_Data_Format{rii}
         end
 
         block_no = [];
+        block_no_tracker = [];
+        prev_block_no = -1;
+        block_tracker = 0;
         for ii = 1: numel(n_blocks)
             n_end = strfind(ns6s{ii}(n_blocks{ii}:end), '.'); %'/');
             block_no(ii) = str2double(ns6s{ii}(n_blocks{ii}+val_past:n_blocks{ii}+n_end(1)-2));
+            if prev_block_no ~= block_no(ii)
+                block_tracker = block_tracker + 1;
+                prev_block_no = block_no(ii);
+            end
+            block_no_tracker(ii) = block_tracker;
         end
         block_no_offset = min(block_no) - 1;
 

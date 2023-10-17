@@ -91,7 +91,7 @@ for ii = to_proc
 
     for rd = 1 : num_recording_devices
         if strcmp(recording_info.Raw_Data_Format{ii}, 'Blackrock NSx')
-            if ~exist([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1)], 'dir')
+            if ~exist([pp.CAT_DATA nwb.identifier '_dev-' num2str(rd-1)], 'dir')
                 proc_CAT(pp, nwb, rd, ii, recording_info);
             end
         end
@@ -99,10 +99,17 @@ for ii = to_proc
 
     [nwb, recdev, probe] = proc_PRO(pp, nwb, recording_info, ii, num_recording_devices);
 
+    for rd = 1 : num_recording_devices
+        if ~exist([pp.ART_DATA nwb.identifier '_dev-' num2str(rd-1)], 'dir') & ...
+                recording_info.Remove_Artifact(ii) == 1
+            proc_ART(pp, nwb, rd, ii, recording_info, recdev, probe);
+        end
+    end
+
     probe_ctr = 0;
     for rd = 1 : num_recording_devices
 
-        % Record analog traces
+        % Record analog traces 
         nwb = proc_AIO(pp, nwb, recdev{rd}, ii, recording_info);
 
         % Digital events
@@ -112,7 +119,7 @@ for ii = to_proc
         for jj = 1 : sum(recdev{rd}.local_probes)
 
             % LFP AND MUA CALC
-            nwb = proc_CDS(nwb, recdev{rd}, probe{probe_ctr+1});
+            nwb = proc_CDS(pp, nwb, recdev{rd}, probe{probe_ctr+1}, recording_info.Remove_Artifact(ii));
 
             % BIN DATA
             if ~exist([pp.BIN_DATA nwb.identifier filesep ...

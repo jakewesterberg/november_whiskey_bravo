@@ -1,4 +1,8 @@
-function dir_cont = findDir(dir_in, search_exp)
+function dir_cont = findDir(dir_in, search_exp, recursively)
+
+if nargin < 3
+    recursively = 1;
+end
 
 dir_str = dir(dir_in);
 dir_cont = {};
@@ -15,7 +19,11 @@ for itt_str = 1 : length(dir_str)
             dir_cont = [dir_cont; {file_name}];
         end
 
-        temp_dir_cont = findDir(file_name,search_exp);
+        if recursively
+            temp_dir_cont = findDir(file_name,search_exp);
+        else
+            temp_dir_cont = [];
+        end
         
         if ~isempty(temp_dir_cont)            
             dir_cont = [dir_cont; temp_dir_cont];

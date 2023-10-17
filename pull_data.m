@@ -14,6 +14,14 @@ switch rec_info.Raw_Data_Format{1}
 
         files = findFiles(rec_info.Raw_Data_Path{1}, '.', 0);
 
+        if isempty(files)
+            block_dirs = findDir(rec_info.Raw_Data_Path{1}, '_B', 0);
+            files = [];
+            for idir = block_dirs'
+                files = [files, findFiles(idir{1}, '.', 0)];
+            end
+        end
+
         fid = fopen([pp.SCRATCH '\proc_grab_data.bat'], 'w');
         fprintf(fid, '%s\n', ...
             ['robocopy ' ...
@@ -64,25 +72,52 @@ switch rec_info.Raw_Data_Format{1}
         unique_blocks_val = [unique_blocks_ex{:}];
 
         blk_ctr = 0;
+        try
+            blocks_to_use = cellfun(@str2double, strtrim(split(rec_info.Block_Specification, ';')))';
+            blocks_to_use_idx = find(ismember(unique_blocks_val, blocks_to_use));
+        end
+        if isnan(blocks_to_use)
+            warning('Blocks not specified, using all')
+            blocks_to_use_idx = find(unique_blocks_val);
+        else
+            unique_blocks_val = blocks_to_use;
+        end
         for ii = unique_blocks_val
             blk_ctr = blk_ctr + 1;
 
             mkdir([pp.RAW_DATA, rec_info.Identifier{1}], ['Block_' num2str(ii)])
 
-            fid = fopen([pp.SCRATCH '\proc_grab_data.bat'], 'w');
-            fprintf(fid, '%s\n', ...
-                ['robocopy ' ...
-                rec_info.Raw_Data_Path{1}  ...
-                ' ' ...
-                [pp.RAW_DATA, rec_info.Identifier{1} '\' 'Block_' num2str(ii)] ...
-                ' ' ...
-                ['*' unique_blocks{blk_ctr} '*'] ...
-                ' /j /np /mt:' ...
-                num2str(workers)]);
-            fclose('all');
+            if exist("block_dirs", "var")
+                fid = fopen([pp.SCRATCH '\proc_grab_data.bat'], 'w');
+                fprintf(fid, '%s\n', ...
+                    ['robocopy ' ...
+                    block_dirs{blocks_to_use_idx(blk_ctr)}  ...
+                    ' ' ...
+                    [pp.RAW_DATA, rec_info.Identifier{1} '\' 'Block_' num2str(ii)] ...
+                    ' ' ...
+                    ['*' unique_blocks{blocks_to_use_idx(blk_ctr)} '*'] ...
+                    ' /j /np /mt:' ...
+                    num2str(workers)]);
+                fclose('all');
 
-            system([pp.SCRATCH '\proc_grab_data.bat']);
-            delete([pp.SCRATCH '\proc_grab_data.bat']);
+                system([pp.SCRATCH '\proc_grab_data.bat']);
+                delete([pp.SCRATCH '\proc_grab_data.bat']);
+            else
+                fid = fopen([pp.SCRATCH '\proc_grab_data.bat'], 'w');
+                fprintf(fid, '%s\n', ...
+                    ['robocopy ' ...
+                    rec_info.Raw_Data_Path{1}  ...
+                    ' ' ...
+                    [pp.RAW_DATA, rec_info.Identifier{1} '\' 'Block_' num2str(ii)] ...
+                    ' ' ...
+                    ['*' unique_blocks{blocks_to_use_idx(blk_ctr)} '*'] ...
+                    ' /j /np /mt:' ...
+                    num2str(workers)]);
+                fclose('all');
+
+                system([pp.SCRATCH '\proc_grab_data.bat']);
+                delete([pp.SCRATCH '\proc_grab_data.bat']);
+            end
 
             if exist(['\' parent_path '\' 'logs'], 'dir')
 
@@ -102,7 +137,6 @@ switch rec_info.Raw_Data_Format{1}
                 delete([pp.SCRATCH '\proc_grab_data.bat']);
 
             end
-
         end
 end
 

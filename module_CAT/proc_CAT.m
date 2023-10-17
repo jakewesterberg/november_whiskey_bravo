@@ -9,7 +9,8 @@ switch recording_info.Raw_Data_Format{rii}
 
         [compiled_event_codes, compiled_event_times, ...
             compiled_event_infos, event_header, ...
-            bad_blocks, bad_instance_specific_blocks] = ...
+            bad_blocks, bad_instance_specific_blocks, ...
+            good_blocks] = ...
             compile_nev_event_data( ...
             ...recording_info.Raw_Data_Path{rii});
             [pp.RAW_DATA nwb.identifier], [pp.CAT_DATA nwb.identifier '_dev-' num2str(rd-1)], ...
@@ -19,6 +20,13 @@ switch recording_info.Raw_Data_Format{rii}
         [event_codes, event_times, event_infos, realigned_indices, block_lengths, nev_valid] = ...
             align_nev_event_data( ...
             compiled_event_codes, compiled_event_times, compiled_event_infos, code_of_interest);
+
+        for ii = 1:numel(good_blocks)
+            event_infos(event_infos(:,end) == ii, end) = good_blocks(ii);
+        end
+        if ~isempty(event_header)
+            event_header{end+1} = 'recording_block';
+        end
 
         file_name = 'board-DIGITAL-IN-aggregated.mat';
         save([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1) filesep file_name], ...
@@ -36,9 +44,17 @@ switch recording_info.Raw_Data_Format{rii}
         end
 
         block_no = [];
+        block_no_tracker = [];
+        prev_block_no = -1;
+        block_tracker = 0;
         for ii = 1: numel(n_blocks)
             n_end = strfind(ns6s{ii}(n_blocks{ii}:end), '.'); %'/');
             block_no(ii) = str2double(ns6s{ii}(n_blocks{ii}+val_past:n_blocks{ii}+n_end(1)-2));
+            if prev_block_no ~= block_no(ii)
+                block_tracker = block_tracker + 1;
+                prev_block_no = block_no(ii);
+            end
+            block_no_tracker(ii) = block_tracker;
         end
         block_no_offset = min(block_no) - 1;
 
@@ -69,7 +85,7 @@ switch recording_info.Raw_Data_Format{rii}
                     block_tracker = block_tracker + 1;
                     block_ref = block_ref + 1;
                 end
-                if instance_no(jj) == ii & block_no(jj) - block_no_offset == block_tracker ...
+                if instance_no(jj) == ii & block_no_tracker(jj) == block_tracker ...
                         & ~ismember(block_no(jj), bad_blocks)
                     temp_data = openNSx(ns6s{jj});
                     cat_data = [cat_data, temp_data.Data(:,realigned_indices{block_ref, ii})];

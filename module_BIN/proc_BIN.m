@@ -15,6 +15,7 @@ end
 in_file_path = recdev.in_file_path;
 out_file_path = [pp.BIN_DATA nwb.identifier filesep];
 file_name = [nwb.identifier '_probe-' num2str(probe.num) '.bin'];
+file_name = [out_file_path file_name];
 port_letter = probe.port;
 
 try
@@ -31,12 +32,6 @@ switch method_version
         %and returns a num_channels x num_samples_total array of binary data
         %contained in a single file
         %The file can be adjusted for the amount of RAM on your system
-
-        %Full path where intan data is located (one file per channel only)
-        %Open the folder containing the data, so you can see all the .dat files for
-        %each channel, then copy the filepath in your file explorer and this will
-        %do the rest
-        file_name = [out_file_path file_name];
 
         %There is a good chance your data is larger than your computer RAM, this is
         %just a good number where everything should fit in memory. If it still

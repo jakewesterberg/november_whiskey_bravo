@@ -31,9 +31,10 @@ end
 
 data_path = [pp.CAT_DATA nwb.identifier '_dev-' num2str(rd-1)];
 
-trial_params = readtable([data_path filesep 'trial_params.csv'],'ReadRowNames',true, 'ReadVariableNames', false);
+trial_params = readtable([data_path filesep 'trial_params.csv'],'ReadRowNames',false, 'ReadVariableNames', true);
 
 ANALOG_filetag = "board-ANALOG-IN-";
+DIGITAL_file = "board-DIGITAL-IN-aggregated";
 
 electrode_string = num2str(0,'%03d'); 
 instance_string = "A";
@@ -49,12 +50,8 @@ samplerate = recdev{1}.sampling_rate;
 
 pulse_start_idx = round(ART_params.pre_stim_window*samplerate);
 
-%% set up filter
-% band pass 250 - 4000 Hz, 
-Fn = samplerate/2;
-Fbp= [250 5000];
-N  = 5;    % filter order
-[Bbp, Abp] = butter(N, [min(Fbp./Fn),max(Fbp./Fn)],'bandpass'); % BandPass
+load(data_path + "\"+ DIGITAL_file + ".mat")
+trial_starts_digital = event_times*samplerate;
 
 %% load stim moments
 % seven stimulator channels. These channels can change (e.g. because one
@@ -75,52 +72,96 @@ for ch = TTL_channels
 end
 TTL = sum(TTL_data,1);
 
+% % Get the TTL start and stop timestamps (one per stimulation train)
+% crossings = diff(TTL > ART_params.threshold);
+% starts = crossings == 1;
+% ends = crossings == -1;
+% n_trials = sum(starts);
+% disp(['nr of trials found: ', num2str(n_trials)])
+% get start of pulse train and actual frequencies per trial
+% This only needs to be calculated once per task, it's the same for all
+% instances / electrodes (assuming correct alignment)
+% n_pulses = table2array(trial_params("numPulses",:));
+% n_pulses = n_pulses(table2array(trial_params("microStimFlag",:)) == 1);
+% pulse_train_starts = find(starts);
+% pulse_train_end = find(ends);
+% 
+% TTL_lengths = pulse_train_end - pulse_train_starts;
+% trial_lengths = pulse_train_starts(2:end)-pulse_train_starts(1:end-1);
+% trial_lengths = [trial_lengths, numel(TTL)-pulse_train_starts(end)];
 % Get the TTL start and stop timestamps (one per stimulation train)
+% try
+%     actual_freqs = samplerate./(TTL_lengths./n_pulses);
+% catch
+%     if numel(unique(samplerate./n_pulses)) == 1
+%         actual_freqs = ones(1, numel(TTL_lengths)) .* (samplerate/(median(TTL_lengths)/unique(n_pulses)));
+%     end
+% end
+%%% compute gap starts over entire block
+% We remove gaps along the entire signal to have a fair analysis compared
+% to during the stimulation where the artifacts are blanked
+% gap_starts = [];
+% for i = 1:n_trials
+%     freq_a = actual_freqs(i); %exact frequency != what was set on stimulator
+%     
+%     period = (1/freq_a)*samplerate;
+%     if i==1
+%         n_samples_prestim = pulse_train_starts(1);
+%     else
+%         n_samples_prestim = pulse_start_idx;
+%     end
+%     prestim_offset = floor(n_samples_prestim/period)*period;
+%     gap_starts_seq = pulse_train_starts(i):period:pulse_train_starts(i)+(n_samples_prestim - pulse_start_idx)+trial_lengths(i);
+%     gap_starts = [gap_starts, round(gap_starts_seq - prestim_offset)];
+%     if gap_starts(1) == 0
+%         gap_starts(1) = 1;
+%     end
+% end
+% gap_starts = gap_starts';
+
 crossings = diff(TTL > ART_params.threshold);
 starts = crossings == 1;
 ends = crossings == -1;
-n_trials = sum(starts);
-disp(['nr of trials found: ', num2str(n_trials)])
+n_trials = size(trial_params, 1);
+n_TTL_trials = sum(starts);
+disp([num2str(n_TTL_trials),' stimulation events found from TTL channels'])
 
-%% get start of pulse train and actual frequencies per trial
-% This only needs to be calculated once per task, it's the same for all
-% instances / electrodes (assuming correct alignment)
-n_pulses = table2array(trial_params("numPulses",:));
-n_pulses = n_pulses(table2array(trial_params("microStimFlag",:)) == 1);
+% get start of pulse train and actual frequencies per trial
+% This part changed the most compared to the previous version
+n_pulses = table2array(trial_params(:,"numPulses")); %the n_pulses for visual trials are all wrong, but should not be used this way
+microstim_trials = table2array(trial_params(:,"microStimFlag"))==1;
+
 pulse_train_starts = find(starts);
 pulse_train_end = find(ends);
 
 TTL_lengths = pulse_train_end - pulse_train_starts;
-trial_lengths = pulse_train_starts(2:end)-pulse_train_starts(1:end-1);
-trial_lengths = [trial_lengths, numel(TTL)-pulse_train_starts(end)];
 
-try
-    actual_freqs = 1./(TTL_lengths/samplerate./n_pulses);
-catch
-    if numel(unique(samplerate./n_pulses)) == 1
-        actual_freqs = ones(1, numel(TTL_lengths)) .* unique(samplerate./n_pulses);
-    end
-end
+actual_stim_freqs = 1./(TTL_lengths/samplerate./n_pulses(microstim_trials)');
+mean_freq = mean(actual_stim_freqs); %use the mean frequency for visual trials
+actual_freqs = zeros(n_trials);
+actual_freqs(microstim_trials) = actual_stim_freqs;
+actual_freqs(~microstim_trials) = mean_freq;
 
-%% compute gap starts over entire block
-% We remove gaps along the entire signal to have a fair analysis compared
-% to during the stimulation where the artifacts are blanked
+stim_moments = zeros(1,n_trials);
+stim_moments(microstim_trials) = pulse_train_starts;
+stim_moments(~microstim_trials) = trial_starts_digital(~microstim_trials);
+
+trial_lengths = stim_moments(2:end)-stim_moments(1:end-1);
+trial_lengths = [trial_lengths, numel(TTL)-stim_moments(end)];
+
 gap_starts = [];
 for i = 1:n_trials
     freq_a = actual_freqs(i); %exact frequency != what was set on stimulator
     
     period = (1/freq_a)*samplerate;
     if i==1
-        n_samples_prestim = pulse_train_starts(1);
+        n_samples_prestim = stim_moments(1);
     else
         n_samples_prestim = pulse_start_idx;
     end
     prestim_offset = floor(n_samples_prestim/period)*period;
-    gap_starts_seq = pulse_train_starts(i):period:pulse_train_starts(i)+(n_samples_prestim - pulse_start_idx)+trial_lengths(i);
+    gap_starts_seq = stim_moments(i):period:stim_moments(i)+(n_samples_prestim - pulse_start_idx)+trial_lengths(i);
     gap_starts = [gap_starts, round(gap_starts_seq - prestim_offset)];
-    if gap_starts(1) == 0
-        gap_starts(1) = 1;
-    end
 end
 gap_starts = gap_starts';
 
@@ -134,25 +175,25 @@ end
 
 for jj = 1 : numel(probe)
     instance_string = probe{jj}.port;
-    parfor ch = 1:probe{jj}.num_channels
-        disp("Working on electrode "+num2str(ch))
+   parfor ch = 1:probe{jj}.num_channels
+        disp("Working on electrode " + num2str(ch))
         % Open file and init data
         electrode_string = num2str(ch-1,'%03d');
         file_name = "amp-" + instance_string + "-" + electrode_string + ".dat";
-        dat_file_path            = data_path + "\" + file_name;
+        dat_file_path           = data_path + "\" + file_name;
         current_fid             = fopen(dat_file_path, 'r');
         current_data            = double(fread(current_fid, num_samples, 'int16'));% .* bit2volt;
 
         % artifact removal for MUA
-        art_removed_data_MUA = art_removal_MUA(ART_params, current_data', gap_starts, Abp, Bbp);
+        art_removed_data_MUA = art_removal_MUA(ART_params, current_data', gap_starts);
 
         % Save file
         write_file_id = fopen(savedir + "\" + "MUA_" + file_name, 'w');
         fwrite(write_file_id, art_removed_data_MUA, 'int16');
-        fclose(write_file_id);
+        fclose(write_file_id); 
 
         % artifact removal for LFP
-        art_removed_data_LFP = art_removal_LFP(ART_params, current_data', gap_starts, Abp, Bbp);
+        art_removed_data_LFP = art_removal_LFP(ART_params, current_data', gap_starts);
 
         % Save file
         write_file_id = fopen(savedir + "\" + "LFP_" + file_name, 'w');

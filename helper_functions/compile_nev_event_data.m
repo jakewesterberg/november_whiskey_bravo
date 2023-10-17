@@ -1,6 +1,7 @@
 function [compiled_event_codes, compiled_event_times, ...
     compiled_event_infos, compiled_event_header, ...
-    bad_blocks, bad_instance_specific_blocks] = ...
+    bad_blocks, bad_instance_specific_blocks, ...
+    good_blocks] = ...
     compile_nev_event_data(dir_in, dir_out, pp, ident)
 
 % event codes are the only temporally coherent signal sent to the
@@ -9,6 +10,7 @@ function [compiled_event_codes, compiled_event_times, ...
 
 n_event_threshold = 25;
 
+logs = [];
 logfile = findFiles(dir_in, 'log');
 if isempty(logfile)
     files = findFiles(dir_in, '.mat');
@@ -92,7 +94,7 @@ for ii = 1 : numel(unique_blocks)
             allPara = log.allPara;
             allPara = [allPara; log.allValidTrialFlag; string(log.allerrorcodestr); log.allMicroStimFlag];
             load([pp.RAW_DATA ident filesep 'tracker_params.mat'])
-            params = array2table(allPara, "RowNames",var_names);
+            params = array2table(allPara', "VariableNames", var_names);
             trial_params_all{ii} = params;
             allPara2 = [];
             for ap = 1 : size(allPara,1)
@@ -144,21 +146,16 @@ if ~isempty(compiled_event_infos)
 end
 
 if ~isempty(compiled_event_infos) & exist('trial_params_all', 'var')
-
-    for ii = ~bad_blocks'
-        if ~exist('trial_params', 'var')
-            trial_params = trial_params_all{ii};
-        else
-            trial_params = join(trial_params, trial_params_all{ii}, 'Keys','Row'); 
-        end
-    end
-
-    writetable(trial_params, ...
-        [dir_out filesep 'trial_params.csv'], ...
-        'WriteRowNames', true)
+    trial_params = vertcat(trial_params_all{~bad_blocks});
+    trial_params.Properties.VariableNames = var_names;
+    writetable(trial_params, [dir_out filesep 'trial_params.csv'])
 end
 
 bad_blocks = unique_blocks(bad_blocks);
+good_blocks = unique_blocks(~bad_blocks);
+if isempty(good_blocks)
+    good_blocks = unique_blocks;
+end
 
 bisb = cellfun(@isempty, compiled_event_codes);
 [bad_instance_specific_blocks(:,1), bad_instance_specific_blocks(:,2)] = ind2sub(size(bisb), find(bisb));
