@@ -90,7 +90,8 @@ for ii = to_proc
     end
 
     for rd = 1 : num_recording_devices
-        if strcmp(recording_info.Raw_Data_Format{ii}, 'Blackrock NSx')
+        if strcmp(recording_info.Raw_Data_Format{ii}, 'Blackrock NSx') || ...
+                strcmp(recording_info.Raw_Data_Format{ii}, 'Blackrock Elche')
             if ~exist([pp.CAT_DATA nwb.identifier '_dev-' num2str(rd-1)], 'dir')
                 proc_CAT(pp, nwb, rd, ii, recording_info);
             end
@@ -122,14 +123,14 @@ for ii = to_proc
             nwb = proc_CDS(pp, nwb, recdev{rd}, probe{probe_ctr+1}, recording_info.Remove_Artifact(ii));
 
             % BIN DATA
-%             if ~exist([pp.BIN_DATA nwb.identifier filesep ...
-%                     nwb.identifier '_probe-' num2str(probe{probe_ctr+1}.num) ...
-%                     '.bin'], 'file')
-%                 proc_BIN(pp, nwb, recdev{rd}, probe{probe_ctr+1});
-%             end
-% 
-%             % SPIKE SORTING
-%             nwb = proc_SPK(pp, nwb, recdev{rd}, probe{probe_ctr+1});
+            if ~exist([pp.BIN_DATA nwb.identifier filesep ...
+                    nwb.identifier '_probe-' num2str(probe{probe_ctr+1}.num) ...
+                    '.bin'], 'file')
+                proc_BIN(pp, nwb, recdev{rd}, probe{probe_ctr+1});
+            end
+
+            % SPIKE SORTING
+            nwb = proc_SPK(pp, nwb, recdev{rd}, probe{probe_ctr+1});
 
             probe_ctr = probe_ctr + 1;
 

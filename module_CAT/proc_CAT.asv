@@ -1,11 +1,11 @@
 function proc_CAT(pp, nwb, rd, rii, recording_info)
 
+if ~exist([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1)], 'dir')
+    mkdir([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1)]);
+end
+
 switch recording_info.Raw_Data_Format{rii}
     case 'Blackrock NSx'
-
-        if ~exist([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1)], 'dir')
-            mkdir([pp.CAT_DATA filesep nwb.identifier '_dev-' num2str(rd-1)]);
-        end
 
         [compiled_event_codes, compiled_event_times, ...
             compiled_event_infos, event_header, ...
@@ -34,12 +34,12 @@ switch recording_info.Raw_Data_Format{rii}
 
         clear compiled_event_codes compiled_event_times
 
-        ns6s = findFiles([pp.RAW_DATA nwb.identifier], '.ns6');
+        nsxs = findFiles([pp.RAW_DATA nwb.identifier], '.ns6');
 
-        n_blocks = strfind(lower(ns6s), '_b');
+        n_blocks = strfind(lower(nsxs), '_b');
         val_past = 2;
         if isempty(n_blocks)
-            n_blocks = strfind(lower(ns6s), 'block_');
+            n_blocks = strfind(lower(nsxs), 'block_');
             val_past = 6;
         end
 
@@ -48,8 +48,8 @@ switch recording_info.Raw_Data_Format{rii}
         prev_block_no = -1;
         block_tracker = 0;
         for ii = 1: numel(n_blocks)
-            n_end = strfind(ns6s{ii}(n_blocks{ii}:end), '.'); %'/');
-            block_no(ii) = str2double(ns6s{ii}(n_blocks{ii}+val_past:n_blocks{ii}+n_end(1)-2));
+            n_end = strfind(nsxs{ii}(n_blocks{ii}:end), '.'); %'/');
+            block_no(ii) = str2double(nsxs{ii}(n_blocks{ii}+val_past:n_blocks{ii}+n_end(1)-2));
             if prev_block_no ~= block_no(ii)
                 block_tracker = block_tracker + 1;
                 prev_block_no = block_no(ii);
@@ -58,11 +58,11 @@ switch recording_info.Raw_Data_Format{rii}
         end
         block_no_offset = min(block_no) - 1;
 
-        n_instances = strfind(lower(ns6s), 'instance');
+        n_instances = strfind(lower(nsxs), 'instance');
         instance_no = [];
         for ii = 1: numel(n_instances)
-            n_end = strfind(ns6s{ii}(n_instances{ii}:end), '_');
-            instance_no(ii) = str2double(ns6s{ii}(n_instances{ii}+8:n_instances{ii}+n_end(1)-2));
+            n_end = strfind(nsxs{ii}(n_instances{ii}:end), '_');
+            instance_no(ii) = str2double(nsxs{ii}(n_instances{ii}+8:n_instances{ii}+n_end(1)-2));
         end
 
         for ii = sort(unique(instance_no))
@@ -85,9 +85,9 @@ switch recording_info.Raw_Data_Format{rii}
                     block_tracker = block_tracker + 1;
                     block_ref = block_ref + 1;
                 end
-                if instance_no(jj) == ii & block_no(jj) - block_no_offset == block_tracker ...
+                if instance_no(jj) == ii & block_no_tracker(jj) == block_tracker ...
                         & ~ismember(block_no(jj), bad_blocks)
-                    temp_data = openNSx(ns6s{jj});
+                    temp_data = openNSx(nsxs{jj});
                     cat_data = [cat_data, temp_data.Data(:,realigned_indices{block_ref, ii})];
                     clear temp_data temp_evts
                     block_tracker = block_tracker + 1;
@@ -118,5 +118,24 @@ switch recording_info.Raw_Data_Format{rii}
             end
             clear cat_data
         end
+
+    case 'Blackrock Elche'
+        nsxs = findFiles([pp.RAW_DATA nwb.identifier], '.ns5');
+        for ii = nsxs
+            nsx = openNSx(ii{1});
+            for jj = 1 : 96
+                if jj < 11
+                    file_name = ['amp-' alphabet(ii) '-00' num2str(jj-1) '.dat'];
+                elseif jj < 101
+                    file_name = ['amp-' alphabet(ii) '-0' num2str(jj-1) '.dat'];
+                else
+                    file_name = ['amp-' alphabet(ii) '-' num2str(jj-1) '.dat'];
+                end
+                write_file_id = fopen([pp.CAT_DATA nwb.identifier '_dev-' num2str(rd-1) filesep file_name], 'w');
+                fwrite(write_file_id, cat_data(jj,:), 'int16');
+                fclose(write_file_id);
+            end
+        end
+
 end
 end

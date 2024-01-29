@@ -118,5 +118,9 @@ switch recording_info.Raw_Data_Format{rii}
             end
             clear cat_data
         end
+
+    case 'Blackrock Elche'
+        pause(1)
+
 end
 end
