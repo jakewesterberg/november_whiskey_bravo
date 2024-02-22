@@ -12,6 +12,7 @@ d = nan(numel(aTest), 1);
 idx = nan(numel(aTest), 1);
 
 edges = [-Inf, mean([aRef(2:end); aRef(1:end-1)]), +Inf];
+edges(isnan(edges)) = [];
 I = discretize(aTest, edges);
 
 end

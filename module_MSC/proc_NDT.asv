@@ -1,0 +1,254 @@
+function nwb = proc_NDT(pp, nwb, recording_info, ii)
+
+% Currently only for single 96ch Utah array
+
+added_sec       = 0;
+
+mua_data        = [];
+lfp_data        = [];
+pup_data        = [];
+eye_data        = [];
+% pdc_data        = [];
+stm_info        = [];
+
+timestamps      = [];
+blk_pts         = [];
+
+for kk = returnGSNum(recording_info.Block_Specification, ii)
+
+    blk_path = [pp.RAW_DATA nwb.identifier filesep 'block-' num2str(kk)];
+    tdt_data = TDTbin2mat(blk_path);
+    log_file = findFiles(blk_path, '.mat');
+    log_data = load(log_file{1});
+
+    if ~added_sec
+        lfp_fs = tdt_data.streams.LFP1.fs;
+        mua_fs = tdt_data.streams.ENV1.fs;
+        eye_fs = tdt_data.streams.Eye_.fs;
+        % pdc_fs = tdt_data.streams.PDC1.fs;
+    end
+    
+    min_length = min([ ...
+                        size(tdt_data.streams.Eye_.data,2), ...
+                        size(tdt_data.streams.ENV1.data,2), ...
+                        size(tdt_data.streams.ENV2.data,2), ...
+                        size(tdt_data.streams.LFP1.data,2), ...
+                        size(tdt_data.streams.LFP2.data,2) ...
+                        ... size(tdt_data.streams.PDC1.data,2), ...
+                        ... size(tdt_data.streams.PDC2.data,2), ...
+                        ... size(tdt_data.streams.PDC3.data,2)      
+                        ]);
+
+    tmp_blk_pts(1) = added_sec;
+    tmp_blk_pts(3) = size(eye_data, 2) + 1;
+
+    eye_data = [eye_data, tdt_data.streams.Eye_.data(1:2, 1:min_length)];
+   
+    pup_data = [pup_data, tdt_data.streams.Eye_.data(3:4, 1:min_length)];
+
+    mua_data = [mua_data,   [tdt_data.streams.ENV1.data(:, 1:min_length); ...
+                             tdt_data.streams.ENV2.data(:, 1:min_length)]];
+
+    lfp_data = [lfp_data,   [tdt_data.streams.LFP1.data(:, 1:min_length); ...
+                             tdt_data.streams.LFP2.data(:, 1:min_length)]];
+
+    % pdc_data = [pdc_data,   [tdt_data.streams.PDC1.data(:, 1:min_length); ...
+    %                          tdt_data.streams.PDC2.data(:, 1:min_length); ...
+    %                          tdt_data.streams.PDC3.data(:, 1:min_length)]];
+ 
+    timestamps = [timestamps, added_sec : mua_fs : added_sec+mua_fs*min_length];
+
+    if size(log_data.STMMAT, 1) ~= numel(tdt_data.epocs.Corr.onset)
+        warning('MISMATCHED STM MAT SIZE AND CORRECT TRIALS')
+        if size(log_data.STMMAT, 1)+1 == numel(tdt_data.epocs.Corr.onset)
+            log_data.STMMAT = log_data.STMMAT(1:end-1,:);
+        elseif size(log_data.STMMAT, 1) == numel(tdt_data.epocs.Corr.onset)+1
+            tdt_data.epocs.Corr.onset = log_data.STMMAT(1:end-1,:);
+        end
+    end
+
+    tmp_stm_times = nan(numel(tdt_data.epocs.Corr.onset), 1);
+    for jj = 1 : numel(tdt_data.epocs.Corr.onset)
+        tmp_diffs                   = tdt_data.epocs.Corr.onset(jj) - tdt_data.epocs.Stim.onset;
+        tmp_diffs(tmp_diffs < 0)    = [];
+        [~, tmp_stm_times(jj)]      = min(tmp_diffs);
+    end
+
+    tmp_times = [   tdt_data.epocs.Stim.onset(tmp_stm_times), ...
+                    tdt_data.epocs.Stim.offset(tmp_stm_times), ...
+                    tdt_data.epocs.Corr.onset, ...
+                    tdt_data.epocs.Corr.offset    ];
+
+    t_max       = min_length / mua_fs;
+
+    tmp_info                                = [tmp_times, log_data.STMMAT];
+    tmp_info(tmp_info(:,4) > t_max, :)      = [];
+    tmp_info(:,1:4)                         = tmp_info(:,1:4)  + added_sec;
+
+    tmp_info = [tmp_info, zeros(size(tmp_info, 1), 1) + kk];
+
+    stm_info = [stm_info; tmp_info];
+
+    added_sec   = added_sec + t_max + tdt_data.streams.ENV1.fs;
+
+    tmp_blk_pts(2) = added_sec;
+    tmp_blk_pts(4) = size(eye_data, 2);
+
+    blk_pts = [blk_pts; tmp_blk_pts];
+
+end
+
+temp_fields = { ...
+    'start_time', 'stop_time', 'reward_on_time', 'reward_off_time', ...
+    'trial_number', 'digital_word', 'x_pos_idx', 'y_pos_idx', ...
+    'figure_tilt_idx', 'x_pos_pix', 'y_pos_pix', 'block_number'};
+
+stm_info = [stm_info, zeros(size(stm_info, 1), 1)+log_data.GridSz];
+temp_fields = [temp_fields, 'pix_per_deg'];
+
+if          strcmp(recording_info.Preprocess_Notes{ii}, '4dva texture figure/ground')
+
+    stm_info = [stm_info, zeros(size(stm_info, 1), 1) + 4];
+    stm_info = [stm_info, ones(size(stm_info, 1), 1)];
+    stm_info = [stm_info, zeros(size(stm_info, 1), 1)];
+
+elseif      strcmp(recording_info.Preprocess_Notes{ii}, '7dva texture figure/ground')
+
+    stm_info = [stm_info, zeros(size(stm_info, 1), 1) + 7];
+    stm_info = [stm_info, ones(size(stm_info, 1), 1)];
+    stm_info = [stm_info, zeros(size(stm_info, 1), 1)];
+
+elseif      strcmp(recording_info.Preprocess_Notes{ii}, '4dva black-white figure/ground')
+
+    stm_info = [stm_info, zeros(size(stm_info, 1), 1) + 4];
+    stm_info = [stm_info, zeros(size(stm_info, 1), 1)];
+    stm_info = [stm_info, ones(size(stm_info, 1), 1)];
+
+elseif      strcmp(recording_info.Preprocess_Notes{ii}, '7dva black-white figure/ground')
+
+    stm_info = [stm_info, zeros(size(stm_info, 1), 1) + 7];
+    stm_info = [stm_info, zeros(size(stm_info, 1), 1)];
+    stm_info = [stm_info, ones(size(stm_info, 1), 1)];
+
+end
+
+temp_fields = [temp_fields, 'figure_size_dva', 'figure_texture_version', 'figure_blackwhite_version'];
+
+eval_str = [];
+for kk = 1 : numel(temp_fields)
+    eval_str = ...
+        [ eval_str ...
+        ',convertStringsToChars("' ...
+        temp_fields{kk} ...
+        '"), types.hdmf_common.VectorData(convertStringsToChars("data"), stm_info(:,kk)' ...
+        ', convertStringsToChars("description"), convertStringsToChars("placeholder"))'];
+end
+eval_str = [
+    'trials=types.core.TimeIntervals(convertStringsToChars("description"), convertStringsToChars("events"), convertStringsToChars("colnames"),temp_fields' ...
+    eval_str ');']; ...
+
+eval(eval_str); clear eval_str
+nwb.intervals.set('FigureGround_2DMap', trials); clear trials
+
+nwb.general_extracellular_ephys_electrodes = nwb.general_extracellular_ephys_electrodes;
+
+% eye data
+eye_position = types.core.SpatialSeries( ...
+    'description', 'The position of the eye. Actual sampling rate different than reported (Actual=240Hz)', ...
+    'data', eye_data, ...
+    'starting_time_rate', eye_fs, ... % Hz
+    'timestamps', timestamps, ...
+    'timestamps_unit', 'seconds' ...
+    );
+
+eye_tracking = types.core.EyeTracking();
+eye_tracking.spatialseries.set('eye_1_tracking_data', eye_position);
+nwb.acquisition.set('eye_1_tracking_dev_0', eye_tracking);
+
+pup_data = (mean(pup_data)/2 .* pi).^2;
+pupil_diameter = types.core.TimeSeries( ...
+    'description', 'Pupil diameter.', ...
+    'data', pup_data, ...
+    'starting_time_rate', eye_fs, ... % Hz
+    'data_unit', 'arbitrary units', ...
+    'timestamps', timestamps, ...
+    'timestamps_unit', 'seconds' ...
+    );
+
+pupil_tracking = types.core.PupilTracking();
+pupil_tracking.timeseries.set('pupil_1_diameter_data', pupil_diameter);
+nwb.acquisition.set('pupil_1_tracking_dev_0', pupil_tracking);
+
+% Create device
+device = types.core.Device(...
+    'description', 'Utah96', ...
+    'manufacturer', 'Blackrock Neurotech', ...
+    'probe_id', 0, ...
+    'sampling_rate', mua_fs ...
+    );
+nwb.general_devices.set('probeA', device);
+
+electrode_group = types.core.ElectrodeGroup( ...
+    'has_lfp_data', true, ...
+    'lfp_sampling_rate', lfp_fs, ...
+    'probe_id', 0, ...
+    'description', 'electrode group for probeA', ...
+    'location', 'V1', ...
+    'device', types.untyped.SoftLink(device) ...
+    );
+
+nwb.general_extracellular_ephys.set('probeA', electrode_group);
+
+group_object_view = types.untyped.ObjectView(electrode_group);
+
+e_variables = {'location', 'group', 'label' ,'probe'};
+ind_e_table = cell2table(cell(0, length(e_variables)), ...
+                'VariableNames', e_variables);
+
+for ielec = 0:95
+
+    probe_label = 'probeA';
+    electrode_label = ['probeA_e' num2str(ielec)];
+
+    ind_e_table = [ind_e_table; {...
+        'V1',  ...
+        group_object_view, ...
+        electrode_label, ...
+        probe_label}];
+
+end
+
+nwb.general_extracellular_ephys_electrodes = util.table2nwb(ind_e_table);
+
+probe_electrode_table_region = types.hdmf_common.DynamicTableRegion( ...
+    'table', types.untyped.ObjectView(nwb.general_extracellular_ephys_electrodes), ...
+    'description', 'probeA', ...
+    'data', (0:95)');
+
+lfp_electrical_series = types.core.ElectricalSeries( ...
+    'electrodes', probe_electrode_table_region,...
+    'starting_time', 0.0, ... % seconds
+    'starting_time_rate', lfp_fs, ... % Hz
+    'data', lfp_data, ...
+    'data_unit', 'uV', ...
+    'filtering', '???', ...
+    'timestamps', timestamps);
+
+lfp_series = types.core.LFP('probe_0_lfp_data', lfp_electrical_series);
+nwb.acquisition.set('probe_0_lfp', lfp_series);
+    
+muae_electrical_series = types.core.ElectricalSeries( ...
+    'electrodes', probe_electrode_table_region,...
+    'starting_time', 0.0, ... % seconds
+    'starting_time_rate', mua_fs, ... % Hz
+    'data', mua_data, ...
+    'data_unit', 'uV', ...
+    'filtering', '???', ...
+    'timestamps', timestamps);
+
+muae_series = types.core.LFP('probe_0_muae_data', muae_electrical_series);
+nwb.acquisition.set('probe_0_muae', muae_series);
+
+nwbExport(nwb, [pp.NWB_DATA nwb.identifier '.nwb']);
+
+end

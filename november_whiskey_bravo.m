@@ -82,8 +82,18 @@ for ii = to_proc
     nwb.general_lab                     = recording_info.Lab{ii};
     nwb.general_session_id              = recording_info.Identifier{ii};
     nwb.general_experiment_description  = recording_info.Experiment_Description{ii};
+    nwb.file_create_date                = datetime('today');
 
     num_recording_devices = numel(unique(eval(['[' recording_info.Probe_System{ii} ']' ])));
+
+    % Dealing with atypical/preprocessed datasets
+    if      strcmp(recording_info.Raw_Data_Format{ii}, 'AI NWB')
+        proc_AIC(pp, nwb, recording_info, ii)
+        continue
+    elseif  strcmp(recording_info.Raw_Data_Format{ii}, 'NIN TDT')
+        proc_NDT(pp, nwb, recording_info, ii)
+        continue
+    end
 
     if strcmp(recording_info.Raw_Data_Path{ii}(1:2), '\\') & isempty(findDir(pp.RAW_DATA, nwb.identifier))
          pull_data(pp, recording_info(ii,:));
